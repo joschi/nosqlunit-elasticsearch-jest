@@ -5,7 +5,6 @@ Elasticsearch HTTP API for NoSQLUnit
 [![Coverage Status](https://img.shields.io/coveralls/joschi/nosqlunit-elasticsearch-http.svg)](https://coveralls.io/r/joschi/nosqlunit-elasticsearch-http)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.joschi.nosqlunit/nosqlunit-elasticsearch-http.svg)](http://mvnrepository.com/artifact/com.github.joschi.nosqlunit/nosqlunit-elasticsearch-http)
 
-
 Usage
 -----
 
