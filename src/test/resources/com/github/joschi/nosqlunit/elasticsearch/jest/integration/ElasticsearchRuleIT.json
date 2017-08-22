@@ -1,0 +1,55 @@
+{
+  "documents": [
+    {
+      "document": [
+        {
+          "index": {
+            "indexName": "test1",
+            "indexType": "test",
+            "indexId": "0"
+          }
+        },
+        {
+          "data": {
+            "name": "Foobar",
+            "number": 23
+          }
+        }
+      ]
+    },
+    {
+      "document": [
+        {
+          "index": {
+            "indexName": "test1",
+            "indexType": "test",
+            "indexId": "1"
+          }
+        },
+        {
+          "data": {
+            "name": "Foobaz",
+            "number": 42
+          }
+        }
+      ]
+    },
+    {
+      "document": [
+        {
+          "index": {
+            "indexName": "test2",
+            "indexType": "test",
+            "indexId": "1"
+          }
+        },
+        {
+          "data": {
+            "name": "quux",
+            "number": 5
+          }
+        }
+      ]
+    }
+  ]
+}
