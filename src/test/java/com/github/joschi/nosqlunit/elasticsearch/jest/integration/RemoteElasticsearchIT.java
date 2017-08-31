@@ -2,11 +2,10 @@ package com.github.joschi.nosqlunit.elasticsearch.jest.integration;
 
 import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchConfiguration;
 import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchOperation;
-import io.searchbox.client.JestClient;
-import io.searchbox.core.DocumentResult;
-import io.searchbox.core.Get;
-import io.searchbox.indices.DeleteIndex;
-import io.searchbox.indices.Refresh;
+import com.github.joschi.nosqlunit.elasticsearch.jest.RestClientHelper;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +42,7 @@ public class RemoteElasticsearchIT extends BaseIT {
             "   ]\n" +
             "}";
 
-    private final JestClient client;
+    private final RestHighLevelClient client;
     private ElasticsearchOperation elasticsearchOperation;
 
     public RemoteElasticsearchIT() throws IOException {
@@ -66,20 +65,18 @@ public class RemoteElasticsearchIT extends BaseIT {
 
     @After
     public void removeIndexes() throws IOException {
-        final DeleteIndex deleteIndex = new DeleteIndex.Builder("tweeter").build();
-        client.execute(deleteIndex);
-        final Refresh refresh = new Refresh.Builder().build();
-        client.execute(refresh);
+        RestClientHelper.deleteIndex(client.getLowLevelClient(), Collections.singleton("tweeter"));
+        RestClientHelper.refresh(client.getLowLevelClient(), Collections.emptySet());
     }
 
     @Test
     public void insert_operation_should_index_all_dataset() throws IOException {
         elasticsearchOperation.insert(new ByteArrayInputStream(ELASTICSEARCH_DATA.getBytes()));
 
-        final Get getRequest = new Get.Builder("tweeter", "1").type("tweet").build();
-        final DocumentResult documentResult = client.execute(getRequest);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> documentSource = documentResult.getSourceAsObject(Map.class);
+        final GetRequest getRequest = new GetRequest("tweeter", "tweet", "1");
+        final GetResponse getResponse = client.get(getRequest);
+
+        Map<String, Object> documentSource = getResponse.getSourceAsMap();
 
         //Strange a cast to Object
         assertThat(documentSource, hasEntry("name", "a"));
@@ -92,9 +89,9 @@ public class RemoteElasticsearchIT extends BaseIT {
 
         elasticsearchOperation.deleteAll();
 
-        final Get getRequest = new Get.Builder("tweeter", "1").type("tweet").build();
-        final DocumentResult documentResult = client.execute(getRequest);
-        assertThat(documentResult.getSourceAsStringList().isEmpty(), is(false));
+        final GetRequest getRequest = new GetRequest("tweeter", "tweet", "1");
+        final GetResponse getResponse = client.get(getRequest);
+        assertThat(getResponse.isExists(), is(false));
     }
 
     @Test

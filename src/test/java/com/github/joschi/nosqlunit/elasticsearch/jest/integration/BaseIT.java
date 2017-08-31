@@ -1,6 +1,6 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest.integration;
 
-import com.google.common.io.Resources;
+import org.apache.http.HttpHost;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,15 +9,15 @@ import java.net.URL;
 import java.util.Properties;
 
 public abstract class BaseIT {
-    private static final String PROPERTIES_RESOURCE_NAME = "es.properties";
+    private static final String PROPERTIES_RESOURCE_NAME = "/es.properties";
 
-    protected static String getServer() {
+    protected static HttpHost getServer() {
         return getServer(PROPERTIES_RESOURCE_NAME);
     }
 
-    protected static String getServer(String resourceName) {
+    protected static HttpHost getServer(String resourceName) {
         final Properties properties = new Properties();
-        final URL resource = Resources.getResource(resourceName);
+        final URL resource = BaseIT.class.getResource(resourceName);
         try (InputStream stream = resource.openStream()) {
             properties.load(stream);
         } catch (IOException e) {
@@ -25,6 +25,7 @@ public abstract class BaseIT {
         }
 
         final String httpPort = properties.getProperty("httpPort", "9200");
-        return String.format("http://localhost:%s/", httpPort);
+        final int port = Integer.parseInt(httpPort);
+        return new HttpHost("localhost", port, "http");
     }
 }

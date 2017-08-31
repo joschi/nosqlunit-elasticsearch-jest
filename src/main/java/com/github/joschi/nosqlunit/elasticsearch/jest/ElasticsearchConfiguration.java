@@ -1,22 +1,22 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest;
 
 import com.lordofthejars.nosqlunit.core.AbstractJsr330Configuration;
-import io.searchbox.client.JestClient;
-import io.searchbox.client.JestClientFactory;
-import io.searchbox.client.config.HttpClientConfig;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
-    private final JestClient client;
+    private final RestHighLevelClient client;
     private final boolean deleteAllIndices;
     private final boolean createIndices;
     private final Map<String, Object> indexSettings;
     private final Map<String, Map<String, Object>> indexTemplates;
 
-    ElasticsearchConfiguration(JestClient client,
+    ElasticsearchConfiguration(RestHighLevelClient client,
                                boolean deleteAllIndices,
                                boolean createIndices,
                                Map<String, Object> indexSettings,
@@ -28,7 +28,7 @@ public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
         this.indexTemplates = indexTemplates;
     }
 
-    public JestClient getClient() {
+    public RestHighLevelClient getClient() {
         return client;
     }
 
@@ -60,7 +60,7 @@ public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
      *
      * @param server The URL of the Elasticsearch node to connect to
      */
-    public static Builder remoteElasticsearch(String server) {
+    public static Builder remoteElasticsearch(HttpHost server) {
         return remoteElasticsearch(Collections.singleton(server));
     }
 
@@ -69,15 +69,14 @@ public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
      *
      * @param servers The URLs of the Elasticsearch nodes to connect to
      */
-    public static Builder remoteElasticsearch(Set<String> servers) {
+    public static Builder remoteElasticsearch(Set<HttpHost> servers) {
         return new Builder().servers(servers);
     }
 
     public static class Builder {
-        private static final String DEFAULT_SERVER = "http://localhost:9200/";
+        private static final HttpHost DEFAULT_SERVER = new HttpHost("localhost", 9200, "http");
 
-        private Set<String> servers = Collections.singleton(DEFAULT_SERVER);
-        private HttpClientConfig httpClientConfig = null;
+        private Set<HttpHost> servers = Collections.singleton(DEFAULT_SERVER);
         private boolean createIndices = false;
         private boolean deleteAllIndices = false;
         private Map<String, Object> indexSettings = Collections.emptyMap();
@@ -91,7 +90,7 @@ public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
          *
          * @param server The URLs of the Elasticsearch nodes to connect to
          */
-        public Builder server(String server) {
+        public Builder server(HttpHost server) {
             return servers(Collections.singleton(server));
         }
 
@@ -100,16 +99,8 @@ public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
          *
          * @param servers The URLs of the Elasticsearch nodes to connect to
          */
-        public Builder servers(Set<String> servers) {
+        public Builder servers(Set<HttpHost> servers) {
             this.servers = servers;
-            return this;
-        }
-
-        /**
-         * Set the HTTP client configuration for {@link JestClient}.
-         */
-        public Builder httpClientConfig(HttpClientConfig httpClientConfig) {
-            this.httpClientConfig = httpClientConfig;
             return this;
         }
 
@@ -160,18 +151,13 @@ public class ElasticsearchConfiguration extends AbstractJsr330Configuration {
         }
 
         public ElasticsearchConfiguration build() {
-            final JestClient client = getClient();
-            client.setServers(servers);
+            final RestHighLevelClient client = getClient(servers.toArray(new HttpHost[servers.size()]));
 
             return new ElasticsearchConfiguration(client, deleteAllIndices, createIndices, indexSettings, indexTemplates);
         }
 
-        private JestClient getClient() {
-            final JestClientFactory clientFactory = new JestClientFactory();
-            if (httpClientConfig != null) {
-                clientFactory.setHttpClientConfig(httpClientConfig);
-            }
-            return clientFactory.getObject();
+        private RestHighLevelClient getClient(HttpHost[] servers) {
+            return new RestHighLevelClient(RestClient.builder(servers));
         }
     }
 }

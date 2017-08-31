@@ -181,14 +181,13 @@ public class WhenExpectedDataShouldBeComparedIT extends BaseIT {
 
     @Test
     public void exception_should_be_thrown_if_different_() {
-
         elasticsearchOperation.insert(new ByteArrayInputStream(ELASTICSEARCH_DATA.getBytes()));
 
         try {
             elasticsearchOperation.databaseIs(new ByteArrayInputStream(ELASTICSEARCH_DATA_NOT_FOUND.getBytes()));
             fail();
         } catch (NoSqlAssertionError e) {
-            assertThat(e.getMessage(), startsWith("Expected document for index: tweeter - type: tweet - id: 1 is {\"name\":\"a\",\"msg\":\"c\"}, but {\"name\":\"a\",\"msg\":\"b\"} was found."));
+            assertThat(e.getMessage(), startsWith("Expected document for index: tweeter - type: tweet - id: 1 is {\"msg\":\"c\",\"name\":\"a\"}, but {\"msg\":\"b\",\"name\":\"a\"} was found."));
         }
     }
 

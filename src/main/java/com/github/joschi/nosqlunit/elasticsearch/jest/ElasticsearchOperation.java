@@ -1,36 +1,34 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.lordofthejars.nosqlunit.core.AbstractCustomizableDatabaseOperation;
 import com.lordofthejars.nosqlunit.core.NoSqlAssertionError;
-import io.searchbox.client.JestClient;
-import io.searchbox.client.JestResult;
-import io.searchbox.core.Bulk;
-import io.searchbox.core.BulkResult;
-import io.searchbox.core.Count;
-import io.searchbox.core.CountResult;
-import io.searchbox.core.Delete;
-import io.searchbox.core.Search;
-import io.searchbox.core.SearchResult;
-import io.searchbox.core.SearchScroll;
-import io.searchbox.indices.DeleteIndex;
-import io.searchbox.indices.Refresh;
-import io.searchbox.params.Parameters;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.search.ClearScrollRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchScrollRequest;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 public class ElasticsearchOperation extends
-        AbstractCustomizableDatabaseOperation<ElasticsearchConnectionCallback, JestClient> {
+        AbstractCustomizableDatabaseOperation<ElasticsearchConnectionCallback, RestHighLevelClient> {
 
-    private final JestClient client;
+    private final RestHighLevelClient client;
     private final boolean deleteAllIndices;
 
-    public ElasticsearchOperation(JestClient client,
+    public ElasticsearchOperation(RestHighLevelClient client,
                                   boolean deleteAllIndices,
                                   boolean createIndices,
                                   Map<String, Object> indexSettings,
@@ -68,58 +66,56 @@ public class ElasticsearchOperation extends
         final long documentCount = documentCount();
 
         if (deleteAllIndices) {
-            final DeleteIndex deleteIndex = new DeleteIndex.Builder("*").build();
-            final JestResult result = client.execute(deleteIndex);
-            if (!result.isSucceeded()) {
-                throw new IllegalStateException(result.getErrorMessage());
-            }
+            RestClientHelper.deleteIndex(client.getLowLevelClient(), Collections.emptySet());
 
             refreshNode();
         } else if (documentCount > 0) {
-            final Search initialScroll = new Search.Builder("{\"query\":{\"match_all\" : {}}}")
-                    .setParameter(Parameters.SCROLL, "1m")
-                    .setParameter(Parameters.SIZE, documentCount)
-                    .build();
-            final SearchResult scrollResponse = client.execute(initialScroll);
-            if (!scrollResponse.isSucceeded()) {
-                throw new IllegalStateException(scrollResponse.getErrorMessage());
-            }
+            final SearchSourceBuilder searchSource = new SearchSourceBuilder()
+                    .query(QueryBuilders.matchAllQuery())
+                    .fetchSource(false);
 
-            final Bulk.Builder bulkRequestBuilder = new Bulk.Builder();
+            final SearchRequest initialScroll = new SearchRequest()
+                    .source(searchSource)
+                    .scroll(TimeValue.timeValueMinutes(1L));
+
+            final BulkRequest bulkRequest = new BulkRequest();
             int numberOfActions = 0;
-            while (true) {
-                final String scrollId = scrollResponse.getJsonObject().getAsJsonPrimitive("_scroll_id").getAsString();
-                final SearchScroll searchScroll = new SearchScroll.Builder(scrollId, "1m").build();
-                final JestResult result = client.execute(searchScroll);
-                if (!result.isSucceeded()) {
-                    throw new IllegalStateException(result.getErrorMessage());
-                }
-                final JsonArray hits = result.getJsonObject().getAsJsonObject("hits").getAsJsonArray("hits");
+            SearchResponse scrollResponse = client.search(initialScroll);
+            final String scrollId = scrollResponse.getScrollId();
+            do {
+                final SearchHit[] hits = scrollResponse.getHits().getHits();
 
                 // Break condition: No hits are returned
-                if (hits.size() == 0) {
+                if (hits.length == 0) {
                     break;
                 }
 
-                for (JsonElement element : hits) {
-                    if (element.isJsonObject()) {
-                        final JsonObject hit = element.getAsJsonObject();
-                        final Delete deleteAction = new Delete.Builder(hit.getAsJsonPrimitive("id").getAsString())
-                                .index(hit.getAsJsonPrimitive("index").getAsString())
-                                .type(hit.getAsJsonPrimitive("type").getAsString())
-                                .build();
-                        bulkRequestBuilder.addAction(deleteAction);
-                        numberOfActions++;
-                    }
+                for (SearchHit hit : hits) {
+                    final DeleteRequest deleteRequest = new DeleteRequest(hit.getIndex(), hit.getType(), hit.getId());
+                    bulkRequest.add(deleteRequest);
+                    numberOfActions++;
+                }
+
+                final SearchScrollRequest searchScrollRequest = new SearchScrollRequest(scrollId)
+                        .scroll(TimeValue.timeValueMinutes(1L));
+                scrollResponse = client.searchScroll(searchScrollRequest);
+                if (scrollResponse.getFailedShards() > 0) {
+                    final String shardFailures = Arrays.toString(scrollResponse.getShardFailures());
+                    throw new IllegalStateException("Error while fetching documents: " + shardFailures);
+                }
+
+            } while (true);
+
+            if (numberOfActions > 0) {
+                final BulkResponse bulkResponse = client.bulk(bulkRequest);
+                if (bulkResponse.hasFailures()) {
+                    throw new IllegalStateException("Error while deleting documents: " + bulkResponse.buildFailureMessage());
                 }
             }
 
-            if (numberOfActions > 0) {
-                final BulkResult bulkResponse = client.execute(bulkRequestBuilder.build());
-                if (!bulkResponse.isSucceeded()) {
-                    throw new IllegalStateException(bulkResponse.getErrorMessage());
-                }
-            }
+            final ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+            clearScrollRequest.addScrollId(scrollResponse.getScrollId());
+            client.clearScroll(clearScrollRequest);
 
             refreshNode();
         }
@@ -127,18 +123,11 @@ public class ElasticsearchOperation extends
     }
 
     private long documentCount() throws IOException {
-        final CountResult countResult = client.execute(new Count.Builder().build());
-        if (!countResult.isSucceeded()) {
-            throw new IllegalStateException(countResult.getErrorMessage());
-        }
-        return countResult.getCount().longValue();
+        return RestClientHelper.count(client, Collections.emptySet(), Collections.emptySet());
     }
 
     private void refreshNode() throws IOException {
-        final JestResult result = client.execute(new Refresh.Builder().build());
-        if (!result.isSucceeded()) {
-            throw new IllegalStateException(result.getErrorMessage());
-        }
+        RestClientHelper.refresh(client.getLowLevelClient(), Collections.emptySet());
     }
 
     @Override
@@ -153,7 +142,7 @@ public class ElasticsearchOperation extends
     }
 
     @Override
-    public JestClient connectionManager() {
+    public RestHighLevelClient connectionManager() {
         return client;
     }
 }

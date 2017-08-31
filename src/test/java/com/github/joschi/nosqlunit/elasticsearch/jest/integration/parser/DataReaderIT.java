@@ -1,14 +1,12 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest.integration.parser;
 
 import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchConfiguration;
+import com.github.joschi.nosqlunit.elasticsearch.jest.RestClientHelper;
 import com.github.joschi.nosqlunit.elasticsearch.jest.integration.BaseIT;
 import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
-import io.searchbox.client.JestClient;
-import io.searchbox.client.JestResult;
-import io.searchbox.core.DocumentResult;
-import io.searchbox.core.Get;
-import io.searchbox.indices.DeleteIndex;
-import io.searchbox.indices.settings.GetSettings;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +43,7 @@ public class DataReaderIT extends BaseIT {
             "   ]\n" +
             "}";
 
-    private JestClient client;
+    private RestHighLevelClient client;
 
     @Before
     public void setUp() {
@@ -55,13 +53,10 @@ public class DataReaderIT extends BaseIT {
 
     @After
     public void tearDown() throws IOException {
-        final DeleteIndex deleteIndex = new DeleteIndex.Builder("tweeter").build();
-        final JestResult result = client.execute(deleteIndex);
-
-        assertThat(result.getErrorMessage(), result.isSucceeded(), is(true));
+        RestClientHelper.deleteIndex(client.getLowLevelClient(), Collections.emptySet());
 
         if (client != null) {
-            client.shutdownClient();
+            client.close();
         }
     }
 
@@ -70,11 +65,11 @@ public class DataReaderIT extends BaseIT {
         final DataReader dataReader = new DataReader(client, false, Collections.emptyMap(), Collections.emptyMap());
         dataReader.read(new ByteArrayInputStream(ELASTICSEARCH_DATA.getBytes()));
 
-        final Get getRequest = new Get.Builder("tweeter", "1").type("tweet").build();
-        final DocumentResult response = client.execute(getRequest);
-        assertThat(response.getErrorMessage(), response.isSucceeded(), is(true));
+        final GetRequest getRequest = new GetRequest("tweeter", "tweet", "1");
+        final GetResponse response = client.get(getRequest);
+        assertThat(response.isExists(), is(true));
 
-        @SuppressWarnings("unchecked") final Map<String, Object> document = response.getSourceAsObject(Map.class);
+        final Map<String, Object> document = response.getSourceAsMap();
 
         assertThat(document.get("name"), is("a"));
         assertThat(document.get("msg"), is("b"));
@@ -86,17 +81,13 @@ public class DataReaderIT extends BaseIT {
         final DataReader dataReader = new DataReader(client, true, settings, Collections.emptyMap());
         dataReader.read(new ByteArrayInputStream(ELASTICSEARCH_DATA.getBytes()));
 
-        final GetSettings getSettings = new GetSettings.Builder().addIndex("tweeter").build();
-        final JestResult response = client.execute(getSettings);
+        final Map<String, Object> settingsResponse = RestClientHelper.getSettings(client.getLowLevelClient(), Collections.singleton("tweeter"));
 
-        assertThat(response.getErrorMessage(), response.isSucceeded(), is(true));
+        final Map tweeterMap = (Map) settingsResponse.get("tweeter");
+        final Map settingsMap = (Map) tweeterMap.get("settings");
+        final Map indexMap = (Map) settingsMap.get("index");
+        final String codec = (String) indexMap.get("codec");
 
-        final String codec = response.getJsonObject()
-                .getAsJsonObject("tweeter")
-                .getAsJsonObject("settings")
-                .getAsJsonObject("index")
-                .getAsJsonPrimitive("codec")
-                .getAsString();
         assertThat(codec, is("best_compression"));
     }
 
@@ -109,17 +100,13 @@ public class DataReaderIT extends BaseIT {
         final DataReader dataReader = new DataReader(client, true, Collections.emptyMap(), templates);
         dataReader.read(new ByteArrayInputStream(ELASTICSEARCH_DATA.getBytes()));
 
-        final GetSettings getSettings = new GetSettings.Builder().addIndex("tweeter").build();
-        final JestResult indexSettingsResponse = client.execute(getSettings);
+        final Map<String, Object> settingsResponse = RestClientHelper.getSettings(client.getLowLevelClient(), Collections.singleton("tweeter"));
 
-        assertThat(indexSettingsResponse.getErrorMessage(), indexSettingsResponse.isSucceeded(), is(true));
+        final Map tweeterMap = (Map) settingsResponse.get("tweeter");
+        final Map settingsMap = (Map) tweeterMap.get("settings");
+        final Map indexMap = (Map) settingsMap.get("index");
+        final String codec = (String) indexMap.get("codec");
 
-        final String codec = indexSettingsResponse.getJsonObject()
-                .getAsJsonObject("tweeter")
-                .getAsJsonObject("settings")
-                .getAsJsonObject("index")
-                .getAsJsonPrimitive("codec")
-                .getAsString();
         assertThat(codec, is("best_compression"));
     }
 }

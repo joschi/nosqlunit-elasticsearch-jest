@@ -1,7 +1,7 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest;
 
-import io.searchbox.client.JestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 
 public interface ElasticsearchConnectionCallback {
-    JestClient client();
+    RestHighLevelClient client();
 }

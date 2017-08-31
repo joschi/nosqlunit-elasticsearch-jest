@@ -1,30 +1,24 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest.parser;
 
-import com.google.gson.Gson;
-import io.searchbox.client.JestClient;
-import io.searchbox.client.JestResult;
-import io.searchbox.core.Bulk;
-import io.searchbox.core.BulkResult;
-import io.searchbox.core.Index;
-import io.searchbox.indices.CreateIndex;
-import io.searchbox.indices.Refresh;
-import io.searchbox.indices.template.DeleteTemplate;
-import io.searchbox.indices.template.PutTemplate;
+import com.github.joschi.nosqlunit.elasticsearch.jest.RestClientHelper;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class DataReader {
-    private static final Gson GSON = new Gson();
-
     public static final String DOCUMENTS_ELEMENT = "documents";
     public static final String DOCUMENT_ELEMENT = "document";
     public static final String DATA_ELEMENT = "data";
@@ -33,12 +27,12 @@ public class DataReader {
     public static final String INDEX_TYPE_ELEMENT = "indexType";
     public static final String INDEX_ID_ELEMENT = "indexId";
 
-    private final JestClient client;
+    private final RestHighLevelClient client;
     private final boolean createIndices;
     private final Map<String, Object> indexSettings;
     private final Map<String, Map<String, Object>> templates;
 
-    public DataReader(JestClient client,
+    public DataReader(RestHighLevelClient client,
                       boolean createIndices,
                       Map<String, Object> indexSettings,
                       Map<String, Map<String, Object>> templates) {
@@ -74,10 +68,9 @@ public class DataReader {
 
     private void deleteTemplates(Set<String> templates) throws IOException {
         for (String template : templates) {
-            final DeleteTemplate deleteTemplate = new DeleteTemplate.Builder(template).build();
-            final JestResult result = client.execute(deleteTemplate);
-            if (!result.isSucceeded()) {
-                throw new IllegalStateException("Error while deleting template \"" + template + "\": " + result.getErrorMessage());
+            final boolean isSucceeded = RestClientHelper.deleteTemplate(client.getLowLevelClient(), template);
+            if (!isSucceeded) {
+                throw new IllegalStateException("Error while deleting template \"" + template);
             }
         }
     }
@@ -85,24 +78,15 @@ public class DataReader {
     private void createTemplates(Map<String, Map<String, Object>> templates) throws IOException {
         for (Map.Entry<String, Map<String, Object>> template : templates.entrySet()) {
             final String templateName = template.getKey();
-            final PutTemplate putTemplate = new PutTemplate.Builder(templateName, template.getValue()).build();
-            final JestResult result = client.execute(putTemplate);
-            if (!result.isSucceeded()) {
-                throw new IllegalStateException("Error while creating template \"" + templateName + "\": " + result.getErrorMessage());
+            final boolean isSucceeded = RestClientHelper.createTemplate(client.getLowLevelClient(), templateName, template.getValue());
+            if (!isSucceeded) {
+                throw new IllegalStateException("Error while creating template \"" + templateName + "\"");
             }
         }
     }
 
-    private void refreshNode() {
-        final Refresh request = new Refresh.Builder().build();
-        try {
-            final JestResult result = client.execute(request);
-            if (!result.isSucceeded()) {
-                throw new IllegalStateException("Error while refreshing indices: " + result.getErrorMessage());
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Unable to refresh indices", e);
-        }
+    private void refreshNode() throws IOException {
+        RestClientHelper.refresh(client.getLowLevelClient(), Collections.emptySet());
     }
 
     @SuppressWarnings("unchecked")
@@ -142,12 +126,9 @@ public class DataReader {
                     throw new IllegalArgumentException("Missing index name element in " + indexInformation);
                 }
 
-                final CreateIndex request = new CreateIndex.Builder(indexName)
-                        .settings(indexSettings)
-                        .build();
-                final JestResult result = client.execute(request);
-                if (!result.isSucceeded()) {
-                    throw new IllegalStateException("Error while creating index " + indexName + ": " + result.getErrorMessage());
+                final boolean isSucceeded = RestClientHelper.createIndex(client.getLowLevelClient(), indexName, indexSettings);
+                if (!isSucceeded) {
+                    throw new IllegalStateException("Error while creating index " + indexName);
                 }
             }
         }
@@ -172,15 +153,15 @@ public class DataReader {
     }
 
     private void insertIndexes(List<Map<String, String>> indexes, Map<String, Object> dataOfDocument) throws IOException {
-        final Bulk.Builder bulkBuilder = new Bulk.Builder();
+        final BulkRequest bulkRequest = new BulkRequest();
         for (Map<String, String> indexInformation : indexes) {
-            final Index indexDocument = indexDocument(indexInformation, dataOfDocument);
-            bulkBuilder.addAction(indexDocument);
+            final IndexRequest indexDocument = indexDocument(indexInformation, dataOfDocument);
+            bulkRequest.add(indexDocument);
         }
 
-        final BulkResult result = client.execute(bulkBuilder.build());
-        if (!result.isSucceeded()) {
-            throw new IllegalStateException("Error while bulk indexing documents: " + result.getErrorMessage());
+        final BulkResponse bulkResponse = client.bulk(bulkRequest);
+        if (bulkResponse.hasFailures()) {
+            throw new IllegalStateException("Error while bulk indexing documents: " + bulkResponse.buildFailureMessage());
         }
     }
 
@@ -189,29 +170,29 @@ public class DataReader {
         return (Map<String, Object>) object;
     }
 
-    private Index indexDocument(Map<String, String> indexInformation, Object source) {
+    private IndexRequest indexDocument(Map<String, String> indexInformation, Map<String, Object> source) {
         if (!indexInformation.containsKey(INDEX_NAME_ELEMENT)) {
             throw new IllegalArgumentException("Missing index name element in " + indexInformation);
         }
 
-        final Index.Builder createIndexBuilder = new Index.Builder(source)
-                .index(indexInformation.get(INDEX_NAME_ELEMENT));
+        final IndexRequest indexRequest = new IndexRequest(indexInformation.get(INDEX_NAME_ELEMENT))
+                .source(source);
 
         if (indexInformation.containsKey(INDEX_TYPE_ELEMENT)) {
-            createIndexBuilder.type(indexInformation.get(INDEX_TYPE_ELEMENT));
+            indexRequest.type(indexInformation.get(INDEX_TYPE_ELEMENT));
         }
 
         if (indexInformation.containsKey(INDEX_ID_ELEMENT)) {
-            createIndexBuilder.id(indexInformation.get(INDEX_ID_ELEMENT));
+            indexRequest.id(indexInformation.get(INDEX_ID_ELEMENT));
         }
 
-        return createIndexBuilder.build();
+        return indexRequest;
     }
 
     @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> getDocuments(InputStream data) throws IOException {
-        try (Reader reader = new InputStreamReader(data)) {
-            final Map<String, Object> rootNode = (Map<String, Object>) GSON.fromJson(reader, Map.class);
+        try (XContentParser parser = XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY, data)) {
+            final Map<String, Object> rootNode = parser.map();
             final Object dataElements = rootNode.get(DOCUMENTS_ELEMENT);
 
             if (dataElements instanceof List) {

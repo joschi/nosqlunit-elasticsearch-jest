@@ -2,8 +2,11 @@ package com.github.joschi.nosqlunit.elasticsearch.jest;
 
 import com.lordofthejars.nosqlunit.core.AbstractNoSqlTestRule;
 import com.lordofthejars.nosqlunit.core.DatabaseOperation;
-import io.searchbox.client.JestClient;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestHighLevelClient;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -11,7 +14,7 @@ public class ElasticsearchRule extends AbstractNoSqlTestRule {
 
     private static final String EXTENSION = "json";
 
-    private DatabaseOperation<? extends JestClient> databaseOperation;
+    private DatabaseOperation<? extends RestHighLevelClient> databaseOperation;
 
     public static Builder newElasticsearchRule() {
         return new Builder();
@@ -54,7 +57,7 @@ public class ElasticsearchRule extends AbstractNoSqlTestRule {
          *
          * @return An {@link ElasticsearchRule} using the default configuration
          */
-        public ElasticsearchRule remoteElasticsearch(String server) {
+        public ElasticsearchRule remoteElasticsearch(HttpHost server) {
             return remoteElasticsearch(Collections.singleton(server));
         }
 
@@ -63,7 +66,7 @@ public class ElasticsearchRule extends AbstractNoSqlTestRule {
          *
          * @return An {@link ElasticsearchRule} using the default configuration
          */
-        public ElasticsearchRule remoteElasticsearch(Set<String> servers) {
+        public ElasticsearchRule remoteElasticsearch(Set<HttpHost> servers) {
             return new ElasticsearchRule(ElasticsearchConfiguration.remoteElasticsearch(servers).build());
         }
 
@@ -113,6 +116,10 @@ public class ElasticsearchRule extends AbstractNoSqlTestRule {
 
     @Override
     public void close() {
-        this.databaseOperation.connectionManager().shutdownClient();
+        try {
+            this.databaseOperation.connectionManager().close();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Error while closing Elasticsearch client", e);
+        }
     }
 }

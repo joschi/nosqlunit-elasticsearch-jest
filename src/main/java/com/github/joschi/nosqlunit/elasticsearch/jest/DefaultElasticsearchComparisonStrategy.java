@@ -2,7 +2,7 @@ package com.github.joschi.nosqlunit.elasticsearch.jest;
 
 import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
 import com.lordofthejars.nosqlunit.core.NoSqlAssertionError;
-import io.searchbox.client.JestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 
 import java.io.InputStream;
 import java.util.List;
@@ -12,7 +12,7 @@ public class DefaultElasticsearchComparisonStrategy implements ElasticsearchComp
     @Override
     public boolean compare(ElasticsearchConnectionCallback connection, InputStream dataset) throws NoSqlAssertionError,
             Throwable {
-        final JestClient jestClient = connection.client();
+        final RestHighLevelClient jestClient = connection.client();
         final List<Map<String, Object>> documents = DataReader.getDocuments(dataset);
         ElasticsearchAssertion.strictAssertEquals(documents, jestClient);
         return true;

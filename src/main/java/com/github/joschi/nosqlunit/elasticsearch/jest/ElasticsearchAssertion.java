@@ -1,30 +1,28 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest;
 
 import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
-import com.google.gson.Gson;
 import com.lordofthejars.nosqlunit.core.FailureHandler;
 import com.lordofthejars.nosqlunit.util.DeepEquals;
-import io.searchbox.client.JestClient;
-import io.searchbox.core.Count;
-import io.searchbox.core.CountResult;
-import io.searchbox.core.DocumentResult;
-import io.searchbox.core.Get;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ElasticsearchAssertion {
-    private static final Gson GSON = new Gson();
-
     private ElasticsearchAssertion() {
         super();
     }
 
     @SuppressWarnings("unchecked")
-    public static void strictAssertEquals(List<Map<String, Object>> expectedDocuments, JestClient client) throws IOException {
+    public static void strictAssertEquals(List<Map<String, Object>> expectedDocuments, RestHighLevelClient client) throws IOException {
 
         checkNumberOfDocuments(expectedDocuments, client);
 
@@ -59,39 +57,39 @@ public class ElasticsearchAssertion {
 
     private static void checkIndicesWithDocument(List<Map<String, Object>> indexes,
                                                  Map<String, Object> expectedDataOfDocument,
-                                                 JestClient client) throws IOException {
+                                                 RestHighLevelClient client) throws IOException {
         for (Map<String, Object> indexInformation : indexes) {
-            final Get request = prepareGet(indexInformation);
-            final DocumentResult documentResult = client.execute(request);
-            checkExistenceOfDocument(request, documentResult);
-            checkDocumentEquality(expectedDataOfDocument, request, documentResult);
+            final GetRequest request = prepareGet(indexInformation);
+            final GetResponse documentResult = client.get(request);
+            checkExistenceOfDocument(documentResult);
+            checkDocumentEquality(expectedDataOfDocument, documentResult);
         }
     }
 
     private static void checkDocumentEquality(Map<String, Object> expectedDataOfDocument,
-                                              Get request,
-                                              DocumentResult dataOfDocumentResponse) {
-        @SuppressWarnings("unchecked") final Map<String, Object> dataOfDocument = (Map<String, Object>) dataOfDocumentResponse.getSourceAsObject(Map.class, false);
+                                              GetResponse response) throws IOException {
+        final Map<String, Object> dataOfDocument = response.getSourceAsMap();
+        final XContentBuilder jsonBuilder = XContentFactory.jsonBuilder();
 
         // Workaround because DeepEquals.deepEquals expects the types to be identical
         final Map<String, Object> actual = new HashMap<>(dataOfDocument);
         final Map<String, Object> expected = new HashMap<>(expectedDataOfDocument);
         if (!DeepEquals.deepEquals(actual, expected)) {
             throw FailureHandler.createFailure("Expected document for index: %s - type: %s - id: %s is %s, but %s was found.",
-                    request.getIndex(), request.getType(), request.getId(),
-                    GSON.toJson(expectedDataOfDocument), GSON.toJson(dataOfDocument));
+                    response.getIndex(), response.getType(), response.getId(),
+                    jsonBuilder.map(expectedDataOfDocument).string(), response.getSourceAsString());
         }
     }
 
-    private static void checkExistenceOfDocument(Get request, DocumentResult dataOfDocumentResponse) {
-        if (!dataOfDocumentResponse.isSucceeded()) {
+    private static void checkExistenceOfDocument(GetResponse response) {
+        if (!response.isExists()) {
             throw FailureHandler.createFailure(
                     "Document with index: %s - type: %s - id: %s has not returned any document.",
-                    request.getIndex(), request.getType(), request.getId());
+                    response.getIndex(), response.getType(), response.getId());
         }
     }
 
-    private static void checkNumberOfDocuments(List<Map<String, Object>> expectedDocuments, JestClient client) throws IOException {
+    private static void checkNumberOfDocuments(List<Map<String, Object>> expectedDocuments, RestHighLevelClient client) throws IOException {
         int expectedNumberOfElements = expectedDocuments.size();
 
         long numberOfInsertedDocuments = numberOfInsertedDocuments(client);
@@ -102,16 +100,16 @@ public class ElasticsearchAssertion {
         }
     }
 
-    private static Get prepareGet(Map<String, Object> indexInformation) {
+    private static GetRequest prepareGet(Map<String, Object> indexInformation) {
         final String index = (String) indexInformation.get(DataReader.INDEX_NAME_ELEMENT);
         final String id = (String) indexInformation.get(DataReader.INDEX_ID_ELEMENT);
-        final Get.Builder getBuilder = new Get.Builder(index, id);
+        final GetRequest getRequest = new GetRequest(index).id(id);
 
         if (indexInformation.containsKey(DataReader.INDEX_TYPE_ELEMENT)) {
-            getBuilder.type((String) indexInformation.get(DataReader.INDEX_TYPE_ELEMENT));
+            getRequest.type((String) indexInformation.get(DataReader.INDEX_TYPE_ELEMENT));
         }
 
-        return getBuilder.build();
+        return getRequest;
     }
 
     @SuppressWarnings("unchecked")
@@ -119,8 +117,7 @@ public class ElasticsearchAssertion {
         return (Map<String, Object>) object;
     }
 
-    private static long numberOfInsertedDocuments(JestClient client) throws IOException {
-        final CountResult countResult = client.execute(new Count.Builder().build());
-        return countResult.getCount().longValue();
+    private static long numberOfInsertedDocuments(RestHighLevelClient client) throws IOException {
+        return RestClientHelper.count(client, Collections.emptySet(), Collections.emptySet());
     }
 }
