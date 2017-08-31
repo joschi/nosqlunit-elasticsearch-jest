@@ -3,6 +3,7 @@ package com.github.joschi.nosqlunit.elasticsearch.http;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lordofthejars.nosqlunit.core.AbstractCustomizableDatabaseOperation;
 import com.lordofthejars.nosqlunit.core.NoSqlAssertionError;
+import io.searchbox.action.BulkableAction;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
@@ -10,6 +11,7 @@ import io.searchbox.core.BulkResult;
 import io.searchbox.core.Count;
 import io.searchbox.core.CountResult;
 import io.searchbox.core.Delete;
+import io.searchbox.core.DocumentResult;
 import io.searchbox.core.Search;
 import io.searchbox.core.SearchResult;
 import io.searchbox.core.SearchScroll;
@@ -20,6 +22,8 @@ import io.searchbox.params.Parameters;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 
 public class ElasticsearchOperation extends
@@ -74,6 +78,8 @@ public class ElasticsearchOperation extends
 
             refreshNode();
         } else if (documentCount > 0) {
+            final Collection<BulkableAction<DocumentResult>> bulkActions = new ArrayList<>();
+
             final Search initialScroll = new Search.Builder("{\"query\":{\"match_all\" : {}}}")
                     .setParameter(Parameters.SCROLL, "1m")
                     .setParameter(Parameters.SIZE, documentCount)
@@ -82,36 +88,27 @@ public class ElasticsearchOperation extends
             if (!scrollResponse.isSucceeded()) {
                 throw new IllegalStateException(scrollResponse.getErrorMessage());
             }
+            bulkActions.addAll(prepareDelete(scrollResponse));
 
-            final Bulk.Builder bulkRequestBuilder = new Bulk.Builder();
-            int numberOfActions = 0;
+            final String scrollId = scrollResponse.getJsonObject().path("_scroll_id").asText();
             while (true) {
-                final String scrollId = scrollResponse.getJsonObject().path("_scroll_id").asText();
                 final SearchScroll searchScroll = new SearchScroll.Builder(scrollId, "1m").build();
                 final JestResult result = client.execute(searchScroll);
                 if (!result.isSucceeded()) {
                     throw new IllegalStateException(result.getErrorMessage());
                 }
-                final JsonNode hits = result.getJsonObject().path("hits").path("hits");
 
-                // Break condition: No hits are returned
-                if (hits.size() == 0) {
+                final Collection<BulkableAction<DocumentResult>> deleteRequests = prepareDelete(result);
+
+                if (deleteRequests.isEmpty()) {
                     break;
-                }
-
-                for (JsonNode hit : hits) {
-                    if (hit.isObject()) {
-                        final Delete deleteAction = new Delete.Builder(hit.path("id").asText())
-                                .index(hit.path("index").asText())
-                                .type(hit.path("type").asText())
-                                .build();
-                        bulkRequestBuilder.addAction(deleteAction);
-                        numberOfActions++;
-                    }
+                } else {
+                    bulkActions.addAll(deleteRequests);
                 }
             }
 
-            if (numberOfActions > 0) {
+            if (!bulkActions.isEmpty()) {
+                final Bulk.Builder bulkRequestBuilder = new Bulk.Builder().addAction(bulkActions);
                 final BulkResult bulkResponse = client.execute(bulkRequestBuilder.build());
                 if (!bulkResponse.isSucceeded()) {
                     throw new IllegalStateException(bulkResponse.getErrorMessage());
@@ -121,6 +118,21 @@ public class ElasticsearchOperation extends
             refreshNode();
         }
 
+    }
+
+    private Collection<BulkableAction<DocumentResult>> prepareDelete(JestResult result) {
+        final JsonNode hits = result.getJsonObject().path("hits").path("hits");
+        final Collection<BulkableAction<DocumentResult>> bulkActions = new ArrayList<>(hits.size());
+
+        for (JsonNode hit : hits) {
+            final Delete deleteAction = new Delete.Builder(hit.path("_id").asText())
+                    .index(hit.path("_index").asText())
+                    .type(hit.path("_type").asText())
+                    .build();
+            bulkActions.add(deleteAction);
+        }
+
+        return bulkActions;
     }
 
     private long documentCount() throws IOException {
