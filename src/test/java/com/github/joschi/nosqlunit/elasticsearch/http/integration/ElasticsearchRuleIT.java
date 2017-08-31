@@ -1,6 +1,6 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.integration;
+package com.github.joschi.nosqlunit.elasticsearch.http.integration;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchRule;
+import com.github.joschi.nosqlunit.elasticsearch.http.ElasticsearchRule;
 import com.lordofthejars.nosqlunit.annotation.UsingDataSet;
 import com.lordofthejars.nosqlunit.core.LoadStrategyEnum;
 import io.searchbox.client.JestClient;

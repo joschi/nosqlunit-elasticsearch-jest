@@ -1,8 +1,8 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
+import com.github.joschi.nosqlunit.elasticsearch.http.parser.DataReader;
 import com.lordofthejars.nosqlunit.core.FailureHandler;
 import com.lordofthejars.nosqlunit.util.DeepEquals;
 import io.searchbox.client.JestClient;

@@ -1,7 +1,7 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.integration;
+package com.github.joschi.nosqlunit.elasticsearch.http.integration;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchConfiguration;
-import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchOperation;
+import com.github.joschi.nosqlunit.elasticsearch.http.ElasticsearchConfiguration;
+import com.github.joschi.nosqlunit.elasticsearch.http.ElasticsearchOperation;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.DocumentResult;
 import io.searchbox.core.Get;

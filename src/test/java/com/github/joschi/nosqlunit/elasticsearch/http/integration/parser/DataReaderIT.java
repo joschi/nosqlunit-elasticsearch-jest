@@ -1,8 +1,8 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.integration.parser;
+package com.github.joschi.nosqlunit.elasticsearch.http.integration.parser;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchConfiguration;
-import com.github.joschi.nosqlunit.elasticsearch.jest.integration.BaseIT;
-import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
+import com.github.joschi.nosqlunit.elasticsearch.http.ElasticsearchConfiguration;
+import com.github.joschi.nosqlunit.elasticsearch.http.integration.BaseIT;
+import com.github.joschi.nosqlunit.elasticsearch.http.parser.DataReader;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.DocumentResult;

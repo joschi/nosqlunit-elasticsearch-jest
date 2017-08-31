@@ -1,4 +1,4 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.parser;
+package com.github.joschi.nosqlunit.elasticsearch.http.parser;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
