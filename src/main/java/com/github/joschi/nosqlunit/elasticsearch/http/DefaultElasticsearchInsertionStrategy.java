@@ -1,6 +1,6 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
+import com.github.joschi.nosqlunit.elasticsearch.http.parser.DataReader;
 
 import java.io.InputStream;
 import java.util.Map;

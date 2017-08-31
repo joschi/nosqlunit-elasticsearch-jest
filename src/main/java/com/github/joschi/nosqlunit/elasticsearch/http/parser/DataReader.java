@@ -1,4 +1,4 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.parser;
+package com.github.joschi.nosqlunit.elasticsearch.http.parser;
 
 import com.google.gson.Gson;
 import io.searchbox.client.JestClient;

@@ -1,4 +1,4 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
 import com.lordofthejars.nosqlunit.core.AbstractNoSqlTestRule;
 import com.lordofthejars.nosqlunit.core.DatabaseOperation;
