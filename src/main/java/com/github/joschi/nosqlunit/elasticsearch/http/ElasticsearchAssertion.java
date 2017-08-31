@@ -1,6 +1,6 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
+import com.github.joschi.nosqlunit.elasticsearch.http.parser.DataReader;
 import com.lordofthejars.nosqlunit.core.FailureHandler;
 import com.lordofthejars.nosqlunit.util.DeepEquals;
 import org.elasticsearch.action.get.GetRequest;

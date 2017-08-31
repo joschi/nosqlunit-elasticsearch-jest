@@ -1,8 +1,8 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.integration;
+package com.github.joschi.nosqlunit.elasticsearch.http.integration;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchConfiguration;
-import com.github.joschi.nosqlunit.elasticsearch.jest.ElasticsearchOperation;
-import com.github.joschi.nosqlunit.elasticsearch.jest.RestClientHelper;
+import com.github.joschi.nosqlunit.elasticsearch.http.ElasticsearchConfiguration;
+import com.github.joschi.nosqlunit.elasticsearch.http.ElasticsearchOperation;
+import com.github.joschi.nosqlunit.elasticsearch.http.RestClientHelper;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.RestHighLevelClient;

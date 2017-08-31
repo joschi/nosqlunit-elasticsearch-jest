@@ -1,11 +1,11 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.integration;
+package com.github.joschi.nosqlunit.elasticsearch.http.integration;
 
 import org.apache.http.HttpHost;
 import org.junit.Test;
 
 import java.io.IOException;
 
-import static com.github.joschi.nosqlunit.elasticsearch.jest.LowLevelElasticSearchOperations.assertThatConnectionToElasticsearchIsPossible;
+import static com.github.joschi.nosqlunit.elasticsearch.http.LowLevelElasticSearchOperations.assertThatConnectionToElasticsearchIsPossible;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 

@@ -1,9 +1,8 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;

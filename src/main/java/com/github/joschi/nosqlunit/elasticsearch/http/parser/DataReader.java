@@ -1,6 +1,6 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest.parser;
+package com.github.joschi.nosqlunit.elasticsearch.http.parser;
 
-import com.github.joschi.nosqlunit.elasticsearch.jest.RestClientHelper;
+import com.github.joschi.nosqlunit.elasticsearch.http.RestClientHelper;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;

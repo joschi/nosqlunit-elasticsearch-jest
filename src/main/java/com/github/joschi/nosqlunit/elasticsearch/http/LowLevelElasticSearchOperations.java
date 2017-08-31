@@ -1,4 +1,4 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.main.MainResponse;

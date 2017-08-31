@@ -1,4 +1,4 @@
-package com.github.joschi.nosqlunit.elasticsearch.jest;
+package com.github.joschi.nosqlunit.elasticsearch.http;
 
 import org.elasticsearch.client.RestHighLevelClient;
 
