@@ -4,7 +4,7 @@
 
     <groupId>com.github.joschi.nosqlunit</groupId>
     <artifactId>nosqlunit-elasticsearch-http</artifactId>
-    <version>1.0.0-1-SNAPSHOT</version>
+    <version>1.0.0-1+jackson-SNAPSHOT</version>
 
     <name>NoSQLUnit Elasticsearch HTTP API</name>
     <description>Support for the Elasticsearch HTTP API in NoSQLUnit</description>
@@ -66,7 +66,7 @@
 
         <nosqlunit.version>1.0.0-rc.5</nosqlunit.version>
         <elasticsearch.version>5.5.2</elasticsearch.version>
-        <jest.version>5.3.2</jest.version>
+        <jest.version>2.4.7+jackson</jest.version>
 
         <es.it.httpPort>9200</es.it.httpPort>
         <es.it.transportPort>9300</es.it.transportPort>
@@ -82,7 +82,7 @@
             <version>${nosqlunit.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.searchbox</groupId>
+            <groupId>org.graylog.jest</groupId>
             <artifactId>jest</artifactId>
             <version>${jest.version}</version>
         </dependency>

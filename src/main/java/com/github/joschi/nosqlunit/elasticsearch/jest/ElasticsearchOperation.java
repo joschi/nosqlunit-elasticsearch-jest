@@ -1,8 +1,6 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.lordofthejars.nosqlunit.core.AbstractCustomizableDatabaseOperation;
 import com.lordofthejars.nosqlunit.core.NoSqlAssertionError;
 import io.searchbox.client.JestClient;
@@ -88,25 +86,24 @@ public class ElasticsearchOperation extends
             final Bulk.Builder bulkRequestBuilder = new Bulk.Builder();
             int numberOfActions = 0;
             while (true) {
-                final String scrollId = scrollResponse.getJsonObject().getAsJsonPrimitive("_scroll_id").getAsString();
+                final String scrollId = scrollResponse.getJsonObject().path("_scroll_id").asText();
                 final SearchScroll searchScroll = new SearchScroll.Builder(scrollId, "1m").build();
                 final JestResult result = client.execute(searchScroll);
                 if (!result.isSucceeded()) {
                     throw new IllegalStateException(result.getErrorMessage());
                 }
-                final JsonArray hits = result.getJsonObject().getAsJsonObject("hits").getAsJsonArray("hits");
+                final JsonNode hits = result.getJsonObject().path("hits").path("hits");
 
                 // Break condition: No hits are returned
                 if (hits.size() == 0) {
                     break;
                 }
 
-                for (JsonElement element : hits) {
-                    if (element.isJsonObject()) {
-                        final JsonObject hit = element.getAsJsonObject();
-                        final Delete deleteAction = new Delete.Builder(hit.getAsJsonPrimitive("id").getAsString())
-                                .index(hit.getAsJsonPrimitive("index").getAsString())
-                                .type(hit.getAsJsonPrimitive("type").getAsString())
+                for (JsonNode hit : hits) {
+                    if (hit.isObject()) {
+                        final Delete deleteAction = new Delete.Builder(hit.path("id").asText())
+                                .index(hit.path("index").asText())
+                                .type(hit.path("type").asText())
                                 .build();
                         bulkRequestBuilder.addAction(deleteAction);
                         numberOfActions++;

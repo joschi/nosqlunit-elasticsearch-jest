@@ -1,6 +1,7 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest.parser;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Bulk;
@@ -23,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class DataReader {
-    private static final Gson GSON = new Gson();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static final String DOCUMENTS_ELEMENT = "documents";
     public static final String DOCUMENT_ELEMENT = "document";
@@ -208,10 +209,9 @@ public class DataReader {
         return createIndexBuilder.build();
     }
 
-    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> getDocuments(InputStream data) throws IOException {
         try (Reader reader = new InputStreamReader(data)) {
-            final Map<String, Object> rootNode = (Map<String, Object>) GSON.fromJson(reader, Map.class);
+            final Map<String, Object> rootNode = OBJECT_MAPPER.readValue(reader, new TypeReference<Map<String, Object>>(){});
             final Object dataElements = rootNode.get(DOCUMENTS_ELEMENT);
 
             if (dataElements instanceof List) {

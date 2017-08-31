@@ -92,11 +92,11 @@ public class DataReaderIT extends BaseIT {
         assertThat(response.getErrorMessage(), response.isSucceeded(), is(true));
 
         final String codec = response.getJsonObject()
-                .getAsJsonObject("tweeter")
-                .getAsJsonObject("settings")
-                .getAsJsonObject("index")
-                .getAsJsonPrimitive("codec")
-                .getAsString();
+                .path("tweeter")
+                .path("settings")
+                .path("index")
+                .path("codec")
+                .asText();
         assertThat(codec, is("best_compression"));
     }
 
@@ -115,11 +115,11 @@ public class DataReaderIT extends BaseIT {
         assertThat(indexSettingsResponse.getErrorMessage(), indexSettingsResponse.isSucceeded(), is(true));
 
         final String codec = indexSettingsResponse.getJsonObject()
-                .getAsJsonObject("tweeter")
-                .getAsJsonObject("settings")
-                .getAsJsonObject("index")
-                .getAsJsonPrimitive("codec")
-                .getAsString();
+                .path("tweeter")
+                .path("settings")
+                .path("index")
+                .path("codec")
+                .asText();
         assertThat(codec, is("best_compression"));
     }
 }

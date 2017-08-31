@@ -1,7 +1,8 @@
 package com.github.joschi.nosqlunit.elasticsearch.jest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.joschi.nosqlunit.elasticsearch.jest.parser.DataReader;
-import com.google.gson.Gson;
 import com.lordofthejars.nosqlunit.core.FailureHandler;
 import com.lordofthejars.nosqlunit.util.DeepEquals;
 import io.searchbox.client.JestClient;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ElasticsearchAssertion {
-    private static final Gson GSON = new Gson();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private ElasticsearchAssertion() {
         super();
@@ -70,7 +71,7 @@ public class ElasticsearchAssertion {
 
     private static void checkDocumentEquality(Map<String, Object> expectedDataOfDocument,
                                               Get request,
-                                              DocumentResult dataOfDocumentResponse) {
+                                              DocumentResult dataOfDocumentResponse) throws JsonProcessingException {
         @SuppressWarnings("unchecked") final Map<String, Object> dataOfDocument = (Map<String, Object>) dataOfDocumentResponse.getSourceAsObject(Map.class, false);
 
         // Workaround because DeepEquals.deepEquals expects the types to be identical
@@ -79,7 +80,7 @@ public class ElasticsearchAssertion {
         if (!DeepEquals.deepEquals(actual, expected)) {
             throw FailureHandler.createFailure("Expected document for index: %s - type: %s - id: %s is %s, but %s was found.",
                     request.getIndex(), request.getType(), request.getId(),
-                    GSON.toJson(expectedDataOfDocument), GSON.toJson(dataOfDocument));
+                    OBJECT_MAPPER.writeValueAsString(expectedDataOfDocument), OBJECT_MAPPER.writeValueAsString(dataOfDocument));
         }
     }
 
