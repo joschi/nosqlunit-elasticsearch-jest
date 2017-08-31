@@ -94,7 +94,7 @@ public class RemoteElasticsearchIT extends BaseIT {
 
         final Get getRequest = new Get.Builder("tweeter", "1").type("tweet").build();
         final DocumentResult documentResult = client.execute(getRequest);
-        assertThat(documentResult.getSourceAsStringList().isEmpty(), is(false));
+        assertThat(documentResult.isSucceeded(), is(false));
     }
 
     @Test
