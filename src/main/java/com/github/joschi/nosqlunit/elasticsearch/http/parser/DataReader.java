@@ -1,5 +1,6 @@
 package com.github.joschi.nosqlunit.elasticsearch.http.parser;
 
+import com.google.common.base.MoreObjects;
 import com.google.gson.Gson;
 import io.searchbox.client.JestClient;
 import io.searchbox.client.JestResult;
@@ -180,7 +181,29 @@ public class DataReader {
 
         final BulkResult result = client.execute(bulkBuilder.build());
         if (!result.isSucceeded()) {
-            throw new IllegalStateException("Error while bulk indexing documents: " + result.getErrorMessage());
+            final StringBuilder sb = new StringBuilder("Error while bulk indexing documents: ")
+                    .append(result.getErrorMessage());
+
+            if(!result.getFailedItems().isEmpty()) {
+                sb.append('\n');
+                for (BulkResult.BulkResultItem bulkResultItem : result.getFailedItems()) {
+                    final String s = MoreObjects.toStringHelper(BulkResult.BulkResultItem.class)
+                            .omitNullValues()
+                            .add("operation", bulkResultItem.operation)
+                            .add("index", bulkResultItem.index)
+                            .add("type", bulkResultItem.type)
+                            .add("id", bulkResultItem.id)
+                            .add("status", bulkResultItem.status)
+                            .add("error", bulkResultItem.error)
+                            .add("errorType", bulkResultItem.errorType)
+                            .add("errorReason", bulkResultItem.errorReason)
+                            .add("version", bulkResultItem.version)
+                            .toString();
+                    sb.append('\n').append(s);
+                }
+            }
+
+            throw new IllegalStateException(sb.toString());
         }
     }
 
