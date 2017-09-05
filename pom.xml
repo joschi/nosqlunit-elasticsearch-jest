@@ -3,7 +3,7 @@
 
     <groupId>com.github.joschi.nosqlunit</groupId>
     <artifactId>nosqlunit-elasticsearch-http</artifactId>
-    <version>1.0.0-3</version>
+    <version>1.0.0-4-SNAPSHOT</version>
 
     <name>NoSQLUnit Elasticsearch HTTP API</name>
     <description>Support for the Elasticsearch HTTP API in NoSQLUnit</description>
@@ -21,7 +21,7 @@
         <developerConnection>scm:git:git@github.com:joschi/nosqlunit-elasticsearch-http.git</developerConnection>
         <connection>scm:git:https://github.com/joschi/nosqlunit-elasticsearch-http.git</connection>
         <url>https://github.com/joschi/nosqlunit-elasticsearch-http</url>
-      <tag>nosqlunit-elasticsearch-http-1.0.0-3</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <ciManagement>
