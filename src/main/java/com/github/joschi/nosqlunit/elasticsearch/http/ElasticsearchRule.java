@@ -88,8 +88,8 @@ public class ElasticsearchRule extends AbstractNoSqlTestRule {
         super(elasticsearchConfiguration.getConnectionIdentifier());
         this.databaseOperation = new ElasticsearchOperation(
                 elasticsearchConfiguration.getClient(),
-                elasticsearchConfiguration.isCreateIndices(),
                 elasticsearchConfiguration.isDeleteAllIndices(),
+                elasticsearchConfiguration.isCreateIndices(),
                 elasticsearchConfiguration.getIndexSettings(),
                 elasticsearchConfiguration.getIndexTemplates()
         );
