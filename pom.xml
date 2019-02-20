@@ -212,7 +212,7 @@
                 <plugin>
                     <groupId>com.github.alexcojocaru</groupId>
                     <artifactId>elasticsearch-maven-plugin</artifactId>
-                    <version>6.9</version>
+                    <version>6.10</version>
                 </plugin>
             </plugins>
         </pluginManagement>
