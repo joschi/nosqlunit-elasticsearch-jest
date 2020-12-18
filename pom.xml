@@ -66,7 +66,7 @@
 
         <nosqlunit.version>1.0.0</nosqlunit.version>
         <elasticsearch.version>5.5.2</elasticsearch.version>
-        <jest.version>5.3.2</jest.version>
+        <jest.version>6.3.1</jest.version>
 
         <es.it.httpPort>9200</es.it.httpPort>
         <es.it.transportPort>9300</es.it.transportPort>
